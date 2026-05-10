@@ -27,21 +27,16 @@ function getFormData(form) {
 }
 
 /**
- * Sends a POST request to the API with JSON data and CSRF token (if available).
- * @param {string} endpoint - API endpoint to call (relative to API_BASE_URL).
+ * Sends a POST request to the API with JSON data and CSRF token.
+ *
+ * @param {string} endpoint - API endpoint to call.
  * @param {Object} data - Data to send in the request body.
- * @returns {Promise<{ok: boolean, status: number|string, data: any, message: string}>}
+ * @returns {Promise<{ok: boolean, status: number|string, data: any, message?: string}>}
  */
 async function postData(endpoint, data) {
-    let csrfToken = '';
-    const cookieString = document.cookie;
+    await ensureCsrfCookie();
 
-    if (cookieString && cookieString.includes('csrftoken=')) {
-        const csrfCookie = cookieString.split('csrftoken=')[1];
-        if (csrfCookie) {
-            csrfToken = csrfCookie.split(';')[0];
-        }
-    }
+    const csrfToken = getCookie('csrftoken');
     const headers = {
         'Content-Type': 'application/json',
     };
@@ -55,40 +50,55 @@ async function postData(endpoint, data) {
             method: 'POST',
             headers: headers,
             credentials: 'include',
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         });
+
         const responseData = await response.json();
+
         return {
             ok: response.ok,
             status: response.status,
-            data: responseData
+            data: responseData,
         };
     } catch (error) {
-        const errorMessage = getErrorMessage(error);
         return {
             ok: false,
             status: 'error',
-            message: errorMessage
+            message: getErrorMessage(error),
         };
     }
 }
 
 /**
- * Sends a GET request to the API, optionally with activation parameters.
- * @param {string} [uid] - User ID for account activation.
- * @param {string} [token] - Token for account activation.
+ * Sends a GET request to fetch protected video data.
+ *
  * @returns {Promise<Response>} Fetch response object.
  */
-async function getData(uid, token) {
-    const endpoint = (uid && token) ? `activate/${uid}/${token}/` : `video/`
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+async function getData() {
+    return await fetch(`${API_BASE_URL}video/`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
         },
         credentials: 'include',
     });
-    return response;
+}
+
+/**
+ * Sends a GET request to activate a user account.
+ *
+ * @param {string} uidb64 - Base64 encoded user ID.
+ * @param {string} token - Activation token.
+ * @returns {Promise<Response>} Fetch response object.
+ */
+async function getActivationData(uidb64, token) {
+    return await fetch(`${API_BASE_URL}activate/${uidb64}/${token}/`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+    });
 }
 
 /**
@@ -107,4 +117,35 @@ function goToRegister(event) {
     }
 }
 
+/**
+ * Returns a cookie value by name.
+ *
+ * @param {string} name - Cookie name.
+ * @returns {string} Cookie value or empty string.
+ */
+function getCookie(name) {
+    const cookies = document.cookie ? document.cookie.split(';') : [];
+
+    for (let cookie of cookies) {
+        const trimmedCookie = cookie.trim();
+
+        if (trimmedCookie.startsWith(`${name}=`)) {
+            return decodeURIComponent(trimmedCookie.substring(name.length + 1));
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Requests a CSRF cookie from the backend.
+ *
+ * @returns {Promise<void>}
+ */
+async function ensureCsrfCookie() {
+    await fetch(`${API_BASE_URL}${CSRF_URL}`, {
+        method: 'GET',
+        credentials: 'include',
+    });
+}
 

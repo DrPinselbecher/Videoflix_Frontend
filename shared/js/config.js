@@ -32,6 +32,14 @@ const FORGET_PASSWORD_URL = 'password_reset/';
  */
 const REFRESH_URL = 'token/refresh/'
 
+
+/**
+ * Relative path for setting the CSRF cookie.
+ * @constant {string}
+ */
+const CSRF_URL = 'csrf/';
+
+
 /**
  * Configuration for the activation flow.
  * Contains redirect delays and the login URL after activation.

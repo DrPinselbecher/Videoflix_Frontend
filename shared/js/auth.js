@@ -102,18 +102,22 @@ function validateRegistrationEmail(element) {
 
 /**
  * Validates the password field for minimum length and updates UI.
- * Also triggers confirmation password re-validation.
+ * Also triggers confirmation password re-validation if available.
  *
  * @param {HTMLInputElement} element - The password input field.
  */
 function validatePW(element) {
     let valid = element.value.trim().length > 7;
     setError(!valid, element.id + "_group");
+
     if (valid) {
         signUpValues.password = element.value.trim();
     }
-    let confirmedPwRef = document.getElementById("confirmed_password");
-    if (confirmedPwRef.value.trim().length > 0) {
+
+    let confirmedPwRef = document.getElementById("confirmed_password")
+        || document.getElementById("repeated_password");
+
+    if (confirmedPwRef && confirmedPwRef.value.trim().length > 0) {
         validateConfirmPW(confirmedPwRef);
     }
 }
@@ -180,9 +184,9 @@ function validateSignUp() {
 /**
  * Extracts uidb64 and token from the current URL query parameters.
  *
- * @returns {{uidb64: string, token: string} | null} The activation/reset parameters or null if missing.
+ * @returns {{uidb64: string, token: string} | null} The reset parameters or null if missing.
  */
-function extractParams() {
+function extractAuthParams() {
     const params = new URLSearchParams(window.location.search);
     const uidb64 = params.get("uidb64");
     const token = params.get("token");
@@ -255,7 +259,7 @@ async function activateAccount() {
  * @returns {{uidb64: string, token: string} | null} Activation parameters or null.
  */
 function extractActivationParams() {
-    const { uidb64, token } = extractParams() || {};
+    const { uidb64, token } = extractAuthParams() || {};
 
     if (!uidb64 || !token) {
         handleActivationError('Invalid activation link');
@@ -272,7 +276,7 @@ function extractActivationParams() {
  * @returns {Promise<Object>} The parsed server response.
  */
 async function processActivation({ uidb64, token }) {
-    const response = await getData(uidb64, token);
+    const response = await getActivationData(uidb64, token);
     const result = await response.json();
 
     if (!response.ok) {
@@ -364,4 +368,18 @@ function initRegister() {
         document.getElementById('email').value = email;
     }
 
+}
+
+/**
+ * Initializes the password reset page by extracting uidb64 and token.
+ */
+function initPasswordReset() {
+    const params = extractAuthParams();
+
+    if (!params) {
+        showToastAndRedirect(true, ["Invalid reset link"], "./login.html", TOAST_DURATION);
+        return;
+    }
+
+    window.resetParams = params;
 }
