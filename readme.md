@@ -5,7 +5,7 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-yellow)
 ![Backend](https://img.shields.io/badge/Backend-Django_REST_API-darkgreen)
 ![Auth](https://img.shields.io/badge/Auth-HttpOnly_Cookies-red)
-![Status](https://img.shields.io/badge/Status-In_Development-orange)
+![Status](https://img.shields.io/badge/Status-Ready_for_Submission-brightgreen)
 
 ![Videoflix Logo](assets/icons/logo_icon.svg)
 
@@ -181,6 +181,18 @@ fetch(url, {
 });
 ```
 
+For unsafe requests such as `POST`, the frontend first requests a CSRF cookie from the backend:
+
+```text
+GET /api/csrf/
+```
+
+The frontend then sends the CSRF cookie value with the request header:
+
+```text
+X-CSRFToken
+```
+
 ---
 
 ## Frontend Routes
@@ -193,8 +205,8 @@ Typical frontend pages:
 | `pages/auth/register.html` | User registration |
 | `pages/auth/login.html` | User login |
 | `pages/auth/activate.html` | Account activation |
-| `pages/auth/password_reset.html` | Password reset request |
-| `pages/auth/password_confirm.html` | Set new password |
+| `pages/auth/forgot_password.html` | Password reset request |
+| `pages/auth/confirm_password.html` | Set new password |
 | `pages/video_list/index.html` | Protected video dashboard |
 | `pages/video_player/index.html` | Video playback |
 | `pages/legal/privacy_policy.html` | Privacy policy |
@@ -254,6 +266,7 @@ Expected backend endpoints:
 
 | Method | Endpoint | Purpose |
 |---|---|---|
+| `GET` | `/api/csrf/` | Set CSRF cookie |
 | `POST` | `/api/register/` | Register user |
 | `GET` | `/api/activate/<uidb64>/<token>/` | Activate account |
 | `POST` | `/api/login/` | Login user |
@@ -312,7 +325,7 @@ The backend sends a password reset e-mail.
 The e-mail link points to the frontend:
 
 ```text
-http://127.0.0.1:5500/pages/auth/password_confirm.html?uidb64=<uidb64>&token=<token>
+http://127.0.0.1:5500/pages/auth/confirm_password.html?uidb64=<uidb64>&token=<token>
 ```
 
 The frontend extracts:
