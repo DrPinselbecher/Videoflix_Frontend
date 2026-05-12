@@ -238,12 +238,27 @@ async function initActivation() {
 }
 
 /**
- * Sends the activation request using URL parameters (uid, token).
+ * Prevents the activation request from being sent multiple times.
+ * This avoids invalid-token errors when the activation page initializes more than once.
+ *
+ * @type {boolean}
+ */
+let activationStarted = false;
+
+/**
+ * Sends the activation request using URL parameters.
+ * Stops immediately if activation was already started or if required URL parameters are missing.
  */
 async function activateAccount() {
+    if (activationStarted) return;
+
+    activationStarted = true;
+
     const params = extractActivationParams();
     if (!params) return;
+
     updateActivationContent('processing');
+
     try {
         const result = await processActivation(params);
         handleActivationSuccess(result);
