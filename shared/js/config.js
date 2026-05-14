@@ -49,8 +49,8 @@ const CSRF_URL = 'csrf/';
  * @property {string} loginUrl - Path to the login page.
  */
 const ACTIVATION_CONFIG = {
-    successDelay: 992500,
-    errorDelay: 993000,
+    successDelay: 2500,
+    errorDelay: 3000,
     loginUrl: "./login.html"
 };
 

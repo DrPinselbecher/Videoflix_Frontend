@@ -18,8 +18,10 @@ async function signUpSubmit(event) {
         showToastMessage(true, ["Please correct the errors in the form"]);
         return;
     }
+
     const data = getFormData(event.target);
     let response = await postData(REGISTER_URL, data);
+
     if (!response.ok) {
         let errorArr = extractErrorMessages(response.data);
         showToastMessage(true, errorArr);
@@ -38,6 +40,7 @@ async function signUpSubmit(event) {
 async function logInSubmit(event) {
     event.preventDefault();
     setError(false, "error_login");
+
     const data = getFormData(event.target);
     await logIn(data);
 }
@@ -51,6 +54,7 @@ async function logInSubmit(event) {
 async function forgotEmailSubmit(event) {
     event.preventDefault();
     setError(false, "forgot_email_group");
+
     const data = getFormData(event.target);
     await forgetEmail(data);
 }
@@ -62,6 +66,7 @@ async function forgotEmailSubmit(event) {
  */
 async function forgetEmail(data) {
     let response = await postData(FORGET_PASSWORD_URL, data);
+
     if (!response.ok) {
         setError(true, "forgot_email_group");
         let errorArr = extractErrorMessages(response.data);
@@ -78,6 +83,7 @@ async function forgetEmail(data) {
  */
 async function logIn(data) {
     let response = await postData(LOGIN_URL, data);
+
     if (!response.ok) {
         setError(true, "error_login");
         let errorArr = extractErrorMessages(response.data);
@@ -95,6 +101,7 @@ async function logIn(data) {
  */
 function validateRegistrationEmail(element) {
     let valid = validateEmail(element);
+
     if (valid) {
         signUpValues.email = element.value.trim();
     }
@@ -114,7 +121,7 @@ function validatePW(element) {
         signUpValues.password = element.value.trim();
     }
 
-    let confirmedPwRef = document.getElementById("confirmed_password")
+    const confirmedPwRef = document.getElementById("confirmed_password")
         || document.getElementById("repeated_password");
 
     if (confirmedPwRef && confirmedPwRef.value.trim().length > 0) {
@@ -131,6 +138,7 @@ function validatePW(element) {
 function validateConfirmPW(element) {
     let valid = document.getElementById("password").value.trim() == element.value.trim();
     setError(!valid, element.id + "_group");
+
     if (valid) {
         signUpValues.confirmed_password = element.value.trim();
     }
@@ -182,20 +190,20 @@ function validateSignUp() {
 }
 
 /**
- * Extracts uidb64 and token from the current URL query parameters.
+ * Extracts uid and token from the current URL query parameters.
  *
- * @returns {{uidb64: string, token: string} | null} The reset parameters or null if missing.
+ * @returns {{uid: string, token: string} | null} Auth parameters or null if missing.
  */
 function extractAuthParams() {
     const params = new URLSearchParams(window.location.search);
-    const uidb64 = params.get("uidb64");
+    const uid = params.get("uid");
     const token = params.get("token");
 
-    if (!uidb64 || !token) {
+    if (!uid || !token) {
         return null;
     }
 
-    return { uidb64, token };
+    return { uid, token };
 }
 
 /**
@@ -209,7 +217,7 @@ async function confirmPasswordSubmit(event) {
 
     const form = event.target;
     const formData = getFormData(form);
-    const apiEndpoint = `password_confirm/${window.resetParams.uidb64}/${window.resetParams.token}/`;
+    const apiEndpoint = `password_confirm/${window.resetParams.uid}/${window.resetParams.token}/`;
 
     const data = {
         new_password: formData.password,
@@ -233,7 +241,7 @@ async function confirmPasswordSubmit(event) {
  * Initializes the account activation view and triggers activation request.
  */
 async function initActivation() {
-    setHeader()
+    setHeader();
     await activateAccount();
 }
 
@@ -269,29 +277,29 @@ async function activateAccount() {
 
 /**
  * Extracts activation parameters from the URL.
- * Calls error handler if uidb64 or token is missing.
+ * Calls error handler if uid or token is missing.
  *
- * @returns {{uidb64: string, token: string} | null} Activation parameters or null.
+ * @returns {{uid: string, token: string} | null} Activation parameters or null.
  */
 function extractActivationParams() {
-    const { uidb64, token } = extractAuthParams() || {};
+    const authParams = extractAuthParams();
 
-    if (!uidb64 || !token) {
+    if (!authParams) {
         handleActivationError('Invalid activation link');
         return null;
     }
 
-    return { uidb64, token };
+    return authParams;
 }
 
 /**
  * Sends a GET request to activate the account.
  *
- * @param {{uidb64: string, token: string}} params - Activation parameters.
+ * @param {{uid: string, token: string}} params - Activation parameters.
  * @returns {Promise<Object>} The parsed server response.
  */
-async function processActivation({ uidb64, token }) {
-    const response = await getActivationData(uidb64, token);
+async function processActivation({ uid, token }) {
+    const response = await getActivationData(uid, token);
     const result = await response.json();
 
     if (!response.ok) {
@@ -338,7 +346,7 @@ function updateActivationContent(status, customMessage = '') {
 }
 
 /**
- * Returns the content object (icon, title, text) based on activation status.
+ * Returns the content object based on activation status.
  *
  * @param {"processing" | "success" | "error"} status - Activation status.
  * @param {string} customMessage - Optional override for text message.
@@ -346,9 +354,10 @@ function updateActivationContent(status, customMessage = '') {
  */
 function getActivationContent(status, customMessage) {
     const baseContent = ACTIVATION_MESSAGES[status];
+
     return {
         ...baseContent,
-        text: customMessage || baseContent.text
+        text: customMessage || baseContent.text,
     };
 }
 
@@ -364,8 +373,11 @@ function buildActivationHTML({ icon, title, text }, status) {
         ? '<p class="text_a_c font_prime_color">Redirecting to login...</p>'
         : '';
 
-    const titleClass = status === 'success' ? 'activation-success-text' :
-        status === 'error' ? 'activation-error-text' : 'font_prime_color';
+    const titleClass = status === 'success'
+        ? 'activation-success-text'
+        : status === 'error'
+            ? 'activation-error-text'
+            : 'font_prime_color';
 
     return `
         <h1 class="${titleClass} d_flex_cs_gl w_full">${icon} ${title}</h1>
@@ -379,14 +391,14 @@ function buildActivationHTML({ icon, title, text }, status) {
  */
 function initRegister() {
     const email = localStorage.getItem('email');
+
     if (email && email.length > 0) {
         document.getElementById('email').value = email;
     }
-
 }
 
 /**
- * Initializes the password reset page by extracting uidb64 and token.
+ * Initializes the password reset page by extracting uid and token.
  */
 function initPasswordReset() {
     const params = extractAuthParams();
