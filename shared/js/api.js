@@ -27,25 +27,35 @@ function getFormData(form) {
 }
 
 /**
- * Sends a POST request to the API with JSON data and CSRF token.
+ * Sends a POST request with JSON data to the backend.
  *
- * @param {string} endpoint - API endpoint to call.
- * @param {Object} data - Data to send in the request body.
- * @returns {Promise<{ok: boolean, status: number|string, data: any, message?: string}>}
+ * The function first requests a CSRF cookie, then sends the actual POST request.
+ * It always returns a normalized response object so the calling code can safely
+ * show user feedback, even when the network request, CSRF request or JSON parsing fails.
+ *
+ * @async
+ * @function postData
+ * @param {string} endpoint - Relative API endpoint, for example "register/".
+ * @param {Object} data - Request payload that will be sent as JSON.
+ * @returns {Promise<{
+ *   ok: boolean,
+ *   status: number|string,
+ *   data: Object
+ * }>} Normalized response object.
  */
 async function postData(endpoint, data) {
-    await ensureCsrfCookie();
-
-    const csrfToken = getCookie('csrftoken');
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-
-    if (csrfToken) {
-        headers['X-CSRFToken'] = csrfToken;
-    }
-
     try {
+        await ensureCsrfCookie();
+
+        const csrfToken = getCookie('csrftoken');
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: headers,
@@ -53,7 +63,15 @@ async function postData(endpoint, data) {
             body: JSON.stringify(data),
         });
 
-        const responseData = await response.json();
+        let responseData = {};
+
+        try {
+            responseData = await response.json();
+        } catch {
+            responseData = {
+                detail: 'Server response was not valid JSON.',
+            };
+        }
 
         return {
             ok: response.ok,
@@ -64,7 +82,9 @@ async function postData(endpoint, data) {
         return {
             ok: false,
             status: 'error',
-            message: getErrorMessage(error),
+            data: {
+                detail: getErrorMessage(error),
+            },
         };
     }
 }

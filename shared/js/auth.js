@@ -1,34 +1,79 @@
 /**
- * Handles the sign-up form submission.
- * Validates form and privacy policy checkbox before sending registration data.
+ * Handles the registration form submission.
  *
- * @param {Event} event - The form submission event.
+ * The function validates the privacy policy checkbox and all required sign-up fields.
+ * It disables the submit button during the request to prevent duplicate submissions
+ * and to give the user visible feedback while the registration is being processed.
+ *
+ * On success, the user receives a success toast and is redirected to the login page.
+ * On failure, the backend or network error is shown as a toast message.
+ *
+ * @async
+ * @function signUpSubmit
+ * @param {SubmitEvent} event - The form submit event.
+ * @returns {Promise<void>}
  */
 async function signUpSubmit(event) {
     event.preventDefault();
 
-    const privacyCheckbox = document.getElementById('privacy_policy');
-    if (privacyCheckbox && !privacyCheckbox.checked) {
-        setError(true, "privacy_policy_group");
-        showToastMessage(true, ["Please accept the privacy policy to continue"]);
-        return;
-    }
+    const form = event.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    let resetSubmitButton = true;
 
-    if (!validateSignUp()) {
-        showToastMessage(true, ["Please correct the errors in the form"]);
-        return;
-    }
+    setSubmitButtonLoading(submitButton, true);
 
-    const data = getFormData(event.target);
-    let response = await postData(REGISTER_URL, data);
+    try {
+        const privacyCheckbox = document.getElementById('privacy_policy');
 
-    if (!response.ok) {
-        let errorArr = extractErrorMessages(response.data);
-        showToastMessage(true, errorArr);
-    } else {
+        if (privacyCheckbox && !privacyCheckbox.checked) {
+            setError(true, "privacy_policy_group");
+            showToastMessage(true, ["Please accept the privacy policy to continue"]);
+            return;
+        }
+
+        if (!validateSignUp()) {
+            showToastMessage(true, ["Please correct the errors in the form"]);
+            return;
+        }
+
+        const data = getFormData(form);
+        const response = await postData(REGISTER_URL, data);
+
+        if (!response.ok) {
+            const errorArr = extractErrorMessages(response.data);
+            showToastMessage(true, errorArr);
+            return;
+        }
+
+        resetSubmitButton = false;
         localStorage.removeItem('email');
-        showToastAndRedirect(false, ["Registration successful! Please check your email."], "../auth/login.html", TOAST_DURATION);
+
+        showToastAndRedirect(
+            false,
+            ["Registration successful! Please check your email."],
+            "../auth/login.html",
+            TOAST_DURATION
+        );
+    } finally {
+        if (resetSubmitButton) {
+            setSubmitButtonLoading(submitButton, false);
+        }
     }
+}
+
+/**
+ * Toggles the visual loading state of a submit button.
+ *
+ * @function setSubmitButtonLoading
+ * @param {HTMLButtonElement|null} button - The submit button element.
+ * @param {boolean} isLoading - Whether the button should show the loading state.
+ * @returns {void}
+ */
+function setSubmitButtonLoading(button, isLoading) {
+    if (!button) return;
+
+    button.disabled = isLoading;
+    button.textContent = isLoading ? 'Please wait...' : 'Get started';
 }
 
 /**
